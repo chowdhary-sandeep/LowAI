@@ -1,0 +1,73 @@
+##number of users who have commented at least once in the two given subreddits per month
+COPY(
+SELECT
+    EXTRACT(YEAR FROM month_interval) AS year,
+    EXTRACT(MONTH FROM month_interval) AS month,
+    COUNT(DISTINCT author) AS num_authors_both
+FROM (
+    SELECT DISTINCT
+        a.author,
+        DATE_TRUNC('month', TIMESTAMP WITH TIME ZONE 'epoch' + a.created_utc * INTERVAL '1 SECOND') AS month_interval
+    FROM
+        reddit.comments a
+    WHERE
+        a.subreddit = 'vegetarian'
+    AND
+        EXISTS (
+            SELECT 1
+            FROM reddit.comments b
+            WHERE b.author = a.author
+            AND b.subreddit = 'climatechange'
+            AND DATE_TRUNC('month', TIMESTAMP WITH TIME ZONE 'epoch' + b.created_utc * INTERVAL '1 SECOND') = DATE_TRUNC('month', TIMESTAMP WITH TIME ZONE 'epoch' + a.created_utc * INTERVAL '1 SECOND')
+        )
+) AS subquery
+GROUP BY
+    year, month
+ORDER BY
+    year, month;
+) TO 'vegetarian_climatechange_counts.csv' DELIMITER ',' CSV HEADER;
+
+COPY(
+SELECT
+    EXTRACT(YEAR FROM month_interval) AS year,
+    EXTRACT(MONTH FROM month_interval) AS month,
+    COUNT(DISTINCT author) AS num_authors_both
+FROM (
+    SELECT DISTINCT
+        a.author,
+        DATE_TRUNC('month', TIMESTAMP WITH TIME ZONE 'epoch' + a.created_utc * INTERVAL '1 SECOND') AS month_interval
+    FROM
+        reddit.comments a
+    WHERE
+        a.subreddit = 'vegan'
+    AND
+        EXISTS (
+            SELECT 1
+            FROM reddit.comments b
+            WHERE b.author = a.author
+            AND b.subreddit = 'climatechange'
+            AND DATE_TRUNC('month', TIMESTAMP WITH TIME ZONE 'epoch' + b.created_utc * INTERVAL '1 SECOND') = DATE_TRUNC('month', TIMESTAMP WITH TIME ZONE 'epoch' + a.created_utc * INTERVAL '1 SECOND')
+        )
+) AS subquery
+GROUP BY
+    year, month
+ORDER BY
+    year, month;
+) TO 'vegan_climatechange_counts.csv' DELIMITER ',' CSV HEADER;
+
+#####author, date and text of comments to one subreddit
+SELECT
+    AUTHOR,
+	BODY,
+	CREATED_UTC
+FROM REDDIT.COMMENTS
+WHERE SUBREDDIT = 'vegetarian'
+
+#######author, date, title and text of a submission to one subreddit
+SELECT
+    AUTHOR,
+	TITLE,
+	SELFTEXT,
+	CREATED_UTC
+FROM REDDIT.SUBMISSIONS
+WHERE SUBREDDIT = 'vegetarian'
